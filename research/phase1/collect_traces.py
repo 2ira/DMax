@@ -48,7 +48,7 @@ class CollectConfig:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect Phase-1 dLLM traces from the DMax decoding path.")
     parser.add_argument("--model-path", required=True)
-    parser.add_argument("--task", choices=["gsm8k", "math500", "humaneval", "mbpp"], required=True)
+    parser.add_argument("--task", choices=["gsm8k", "math500", "aime24", "gpqa_cot", "humaneval", "mbpp"], required=True)
     parser.add_argument("--subset-path", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=1)

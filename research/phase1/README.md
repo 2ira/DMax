@@ -201,6 +201,32 @@ The suite runner writes:
 - top-level `suite_results.csv`
 - top-level `suite_manifest.json`
 
+There is also a focused suite for prefix-constrained comparisons on math/code:
+
+```bash
+PYTHONPATH=dInfer/python python3 research/phase1/run_benchmark_suite.py \
+  --suite research/phase1/suites/prefix_control_matrix.json \
+  --experiments dmax_math_math500 \
+  --methods credit_prefix credit_prefix_w8 credit_arbitrary stdec_prefix stdec_prefix_w8 stdec_arbitrary
+```
+
+There is also a Dream / thinking comparison skeleton:
+
+```bash
+PYTHONPATH=dInfer/python python3 research/phase1/run_benchmark_suite.py \
+  --suite research/phase1/suites/dream_thinking_skeleton.json \
+  --dry-run
+```
+
+See:
+
+- [dream_thinking_skeleton.json](/Users/ira/Document/DMax/research/phase1/suites/dream_thinking_skeleton.json)
+- [DREAM_THINKING_NOTES.md](/Users/ira/Document/DMax/research/phase1/suites/DREAM_THINKING_NOTES.md)
+
+This Dream suite is intentionally limited to `gsm8k_200` and `math500_200` until
+we add long-CoT subset builders and task adapters for `AIME / GPQA / thinking`
+style traces.
+
 The example suite already covers these method families:
 
 - single-step static scores: `confidence`, `margin`, `negative_entropy`
@@ -223,6 +249,41 @@ Selection controls are explicit method parameters now:
 - `frontier_window = w` to restrict finalization to positions near the current committed frontier
 
 This matters for reasoning and code tasks because the base DMax-style uniform decoder is already longest-prefix by default.
+
+## Visualizations
+
+Credit/finalization style:
+
+```bash
+python3 research/phase1/visualize_finalization_gap.py \
+  --trace-path research/phase1/benchmarks/llada2mini_gsm8k/credit/traces.jsonl \
+  --output-dir research/phase1/figures/credit_gap
+```
+
+STDec / prefix-window spatial heatmap:
+
+```bash
+python3 research/phase1/visualize_spatial_dynamics.py \
+  --trace-path research/phase1/benchmarks/dmax_math_gsm8k/stdec_prefix_w8/traces.jsonl \
+  --output-dir research/phase1/figures/stdec_spatial \
+  --sample-index 0
+```
+
+Jot / Prophet early-stop dynamics:
+
+```bash
+python3 research/phase1/visualize_early_stop_dynamics.py \
+  --trace-path research/phase1/benchmarks/llada2mini_gsm8k/jot/traces.jsonl \
+  --output-dir research/phase1/figures/jot_dynamics
+```
+
+Suite-level score/speed scatter:
+
+```bash
+python3 research/phase1/visualize_suite_results.py \
+  --suite-results research/phase1/benchmarks/suite_results.csv \
+  --output-dir research/phase1/figures/suite
+```
 
 Notes:
 

@@ -1,9 +1,10 @@
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
-from data_formats import load_jsonl
+from data_formats import format_gpqa_cot_row, load_jsonl
 
 
 def _load_outputs(path: str | Path) -> list[dict[str, Any]]:
@@ -68,6 +69,35 @@ def _score_math500(rows: list[dict[str, Any]], outputs: list[dict[str, Any]]) ->
     }
 
 
+def _score_aime24(rows: list[dict[str, Any]], outputs: list[dict[str, Any]]) -> dict[str, Any]:
+    from dInfer.evaluations.val_math import evaluate_example
+
+    total = min(len(rows), len(outputs))
+    correct = 0
+    details = []
+    for idx in range(total):
+        result, gold_candidates, pred_candidates = evaluate_example(
+            rows[idx],
+            {"answer": outputs[idx].get("generated_text", "")},
+        )
+        correct += int(result.correct)
+        details.append(
+            {
+                "sample_index": idx,
+                "correct": bool(result.correct),
+                "method": result.method,
+                "gold_candidates": gold_candidates,
+                "pred_candidates": pred_candidates,
+            }
+        )
+    return {
+        "score_name": "accuracy",
+        "score": None if total == 0 else correct / total,
+        "num_scored": total,
+        "per_sample": details,
+    }
+
+
 def _score_humaneval(rows: list[dict[str, Any]], outputs: list[dict[str, Any]]) -> dict[str, Any]:
     os.environ.setdefault("HF_ALLOW_CODE_EVAL", "1")
     from dInfer.evaluations.tasks.humaneval.utils import pass_at_1
@@ -98,9 +128,72 @@ def _score_mbpp(rows: list[dict[str, Any]], outputs: list[dict[str, Any]]) -> di
     }
 
 
+def _extract_choice_letter(text: str) -> str:
+    raw = str(text or "")
+    patterns = [
+        r"(?i)final answer\s*[:：]?\s*([ABCD])\b",
+        r"(?i)answer\s*[:：]?\s*([ABCD])\b",
+        r"\(([ABCD])\)",
+        r"\b([ABCD])\b",
+    ]
+    for pattern in patterns:
+        matches = re.findall(pattern, raw)
+        if matches:
+            return matches[-1].upper()
+    return ""
+
+
+def _normalize_text(text: str) -> str:
+    return " ".join(str(text or "").strip().lower().split())
+
+
+def _score_gpqa_cot(rows: list[dict[str, Any]], outputs: list[dict[str, Any]]) -> dict[str, Any]:
+    total = min(len(rows), len(outputs))
+    correct = 0
+    details = []
+
+    for idx in range(total):
+        _, target_text, meta = format_gpqa_cot_row(rows[idx])
+        prediction = outputs[idx].get("generated_text", "")
+        pred_letter = _extract_choice_letter(prediction)
+        gold_letter = _extract_choice_letter(target_text) or _extract_choice_letter(meta.get("correct_letter", ""))
+        gold_text = _normalize_text(meta.get("expected_answer", target_text))
+
+        if gold_letter:
+            is_correct = pred_letter == gold_letter
+            method = "choice_letter"
+            gold_candidate = gold_letter
+            pred_candidate = pred_letter
+        else:
+            is_correct = _normalize_text(prediction) == gold_text
+            method = "normalized_text"
+            gold_candidate = gold_text
+            pred_candidate = _normalize_text(prediction)
+
+        correct += int(is_correct)
+        details.append(
+            {
+                "sample_index": idx,
+                "correct": bool(is_correct),
+                "method": method,
+                "gold_candidate": gold_candidate,
+                "pred_candidate": pred_candidate,
+            }
+        )
+
+    return {
+        "score_name": "accuracy",
+        "score": None if total == 0 else correct / total,
+        "num_scored": total,
+        "per_sample": details,
+    }
+
+
 TASK_SCORERS = {
     "gsm8k": _score_gsm8k,
     "math500": _score_math500,
+    "aime24": _score_aime24,
+    "gpqa_cot": _score_gpqa_cot,
     "humaneval": _score_humaneval,
     "mbpp": _score_mbpp,
 }

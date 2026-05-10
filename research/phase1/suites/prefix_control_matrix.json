@@ -1,0 +1,286 @@
+{
+  "output_root": "research/phase1/benchmarks/prefix_control_matrix",
+  "runtime": {
+    "batch_size": 1,
+    "block_length": 32,
+    "max_gen_len": 2048,
+    "cache": "prefix",
+    "gpus": "0",
+    "tp_size": 1,
+    "master_port": 24717,
+    "use_compile": false,
+    "use_bd": true,
+    "trace_topk": 8,
+    "enable_trace": true,
+    "record_router": false,
+    "backend_early_stop": true,
+    "maximum_unroll": 4,
+    "expected_tpf": 4
+  },
+  "models": [
+    {
+      "name": "dmax_math_16b",
+      "path": "research/phase1/assets/models/DMax-Math-16B"
+    },
+    {
+      "name": "dmax_coder_16b",
+      "path": "research/phase1/assets/models/DMax-Coder-16B"
+    }
+  ],
+  "datasets": [
+    {
+      "name": "gsm8k_200",
+      "task": "gsm8k",
+      "subset_path": "research/phase1/assets/datasets/subsets/gsm8k_200.jsonl"
+    },
+    {
+      "name": "math500_200",
+      "task": "math500",
+      "subset_path": "research/phase1/assets/datasets/subsets/math500_200.jsonl"
+    },
+    {
+      "name": "humaneval_164",
+      "task": "humaneval",
+      "subset_path": "research/phase1/assets/datasets/subsets/humaneval_164.jsonl"
+    },
+    {
+      "name": "mbpp_200",
+      "task": "mbpp",
+      "subset_path": "research/phase1/assets/datasets/subsets/mbpp_sanitized_200.jsonl"
+    }
+  ],
+  "methods": [
+    {
+      "name": "confidence_prefix",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95
+      }
+    },
+    {
+      "name": "confidence_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "credit_prefix",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true
+      }
+    },
+    {
+      "name": "credit_prefix_w4",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "frontier_window": 4
+      }
+    },
+    {
+      "name": "credit_prefix_w8",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "frontier_window": 8
+      }
+    },
+    {
+      "name": "credit_prefix_w16",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "frontier_window": 16
+      }
+    },
+    {
+      "name": "credit_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "stable_top1_prefix",
+      "family": "rule",
+      "params": {
+        "score_mode": "none",
+        "threshold": 0.0,
+        "stability_only": true,
+        "stability_steps": 3
+      }
+    },
+    {
+      "name": "stable_top1_prefix_w8",
+      "family": "rule",
+      "params": {
+        "score_mode": "none",
+        "threshold": 0.0,
+        "stability_only": true,
+        "stability_steps": 3,
+        "frontier_window": 8
+      }
+    },
+    {
+      "name": "stable_top1_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "none",
+        "threshold": 0.0,
+        "stability_only": true,
+        "stability_steps": 3,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "stdec_prefix",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05
+      }
+    },
+    {
+      "name": "stdec_prefix_w8",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05,
+        "frontier_window": 8
+      }
+    },
+    {
+      "name": "stdec_arbitrary",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05,
+        "selection_mode": "arbitrary"
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "name": "dmax_math_gsm8k",
+      "model": "dmax_math_16b",
+      "dataset": "gsm8k_200",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w4",
+        "credit_prefix_w8",
+        "credit_prefix_w16",
+        "credit_arbitrary",
+        "stable_top1_prefix",
+        "stable_top1_prefix_w8",
+        "stable_top1_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ],
+      "runtime_overrides": {
+        "record_router": true,
+        "gpus": "0;1",
+        "tp_size": 2
+      }
+    },
+    {
+      "name": "dmax_math_math500",
+      "model": "dmax_math_16b",
+      "dataset": "math500_200",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w4",
+        "credit_prefix_w8",
+        "credit_prefix_w16",
+        "credit_arbitrary",
+        "stable_top1_prefix",
+        "stable_top1_prefix_w8",
+        "stable_top1_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ],
+      "runtime_overrides": {
+        "record_router": true,
+        "gpus": "0;1",
+        "tp_size": 2
+      }
+    },
+    {
+      "name": "dmax_coder_humaneval",
+      "model": "dmax_coder_16b",
+      "dataset": "humaneval_164",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w4",
+        "credit_prefix_w8",
+        "credit_prefix_w16",
+        "credit_arbitrary",
+        "stable_top1_prefix",
+        "stable_top1_prefix_w8",
+        "stable_top1_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ],
+      "runtime_overrides": {
+        "record_router": true,
+        "gpus": "0;1",
+        "tp_size": 2
+      }
+    },
+    {
+      "name": "dmax_coder_mbpp",
+      "model": "dmax_coder_16b",
+      "dataset": "mbpp_200",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w4",
+        "credit_prefix_w8",
+        "credit_prefix_w16",
+        "credit_arbitrary",
+        "stable_top1_prefix",
+        "stable_top1_prefix_w8",
+        "stable_top1_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ],
+      "runtime_overrides": {
+        "record_router": true,
+        "gpus": "0;1",
+        "tp_size": 2
+      }
+    }
+  ]
+}

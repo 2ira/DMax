@@ -85,6 +85,7 @@ class TraceRecorder:
         elapsed_ms: float,
         break_flag: bool,
         router_topk: Optional[torch.Tensor] = None,
+        extra_fields: Optional[dict[str, torch.Tensor]] = None,
     ) -> None:
         if not self._active_samples:
             return
@@ -121,6 +122,7 @@ class TraceRecorder:
                     "margin": [],
                     "entropy": [],
                     "router_topk": None,
+                    "extra": {},
                 }
                 sample["steps"].append(step_payload)
                 continue
@@ -146,5 +148,17 @@ class TraceRecorder:
                 "margin": margin[batch_idx, local_positions].detach().cpu().tolist(),
                 "entropy": entropy[batch_idx, local_positions].detach().cpu().tolist(),
                 "router_topk": self._serialize_router(router_topk, batch_idx, local_positions),
+                "extra": {},
             }
+            if extra_fields:
+                for key, value in extra_fields.items():
+                    if value is None:
+                        continue
+                    sliced = value[batch_idx, local_positions]
+                    if torch.is_tensor(sliced):
+                        sliced_cpu = sliced.detach().cpu()
+                        if sliced_cpu.dtype == torch.bool:
+                            step_payload["extra"][key] = sliced_cpu.to(torch.int32).tolist()
+                        else:
+                            step_payload["extra"][key] = sliced_cpu.tolist()
             sample["steps"].append(step_payload)

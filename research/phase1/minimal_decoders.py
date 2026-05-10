@@ -23,6 +23,7 @@ def _record_uniform_trace(
     block_start,
     block_end,
     break_flag,
+    extra_fields=None,
 ):
     if decoder.trace_recorder is None:
         return
@@ -44,6 +45,7 @@ def _record_uniform_trace(
         elapsed_ms=decoder._trace_elapsed_ms,
         break_flag=break_flag,
         router_topk=decoder._trace_router_topk,
+        extra_fields=extra_fields,
     )
 
 
@@ -151,15 +153,17 @@ def _frontier_window_mask(mask_index, window_size):
 
 def _select_candidates(mask_index, eligible, selection_mode, frontier_window=None):
     constrained = eligible
+    within_window = None
     if frontier_window is not None:
-        constrained = constrained & _frontier_window_mask(mask_index, frontier_window)
+        within_window = _frontier_window_mask(mask_index, frontier_window)
+        constrained = constrained & within_window
     if selection_mode == "prefix":
-        return _prefix_select(mask_index, constrained)
+        return _prefix_select(mask_index, constrained), within_window
     if selection_mode == "arbitrary":
         batch_has_selection = constrained.any(dim=-1, keepdim=True)
         mask_cumsum = torch.cumsum(mask_index.long(), dim=1)
         first_mask_token = (mask_cumsum == 1) & mask_index
-        return torch.where(batch_has_selection, constrained, first_mask_token)
+        return torch.where(batch_has_selection, constrained, first_mask_token), within_window
     raise ValueError(f"Unsupported selection_mode: {selection_mode}")
 
 
@@ -299,7 +303,7 @@ class ConfigurableRuleDecoder(CreditThresholdParallelDecoder):
         else:
             eligible = mask_index & (adjusted_score >= iter_threshold)
 
-        high_conf_index = _select_candidates(
+        high_conf_index, within_window = _select_candidates(
             mask_index,
             eligible,
             selection_mode=self.selection_mode,
@@ -361,6 +365,14 @@ class ConfigurableRuleDecoder(CreditThresholdParallelDecoder):
             block_start=block_start,
             block_end=block_end,
             break_flag=break_flag,
+            extra_fields={
+                "score": score,
+                "adjusted_score": adjusted_score,
+                "streak": streak,
+                "eligible": eligible,
+                "frozen": frozen,
+                "within_frontier_window": within_window if within_window is not None else torch.ones_like(mask_index, dtype=torch.bool),
+            },
         )
 
         if break_flag:

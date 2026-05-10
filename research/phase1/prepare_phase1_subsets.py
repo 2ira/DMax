@@ -36,6 +36,20 @@ DATASET_SPECS = {
         "limit": 200,
         "data_files": "https://huggingface.co/datasets/Muennighoff/mbpp/resolve/main/data/sanitized-mbpp.json",
     },
+    "aime24_30": {
+        "loader": "hf",
+        "path": "HuggingFaceH4/aime_2024",
+        "name": "default",
+        "split": "train",
+        "limit": 30,
+    },
+    "gpqa_cot_100": {
+        "loader": "hf",
+        "path": "llamastack/gpqa_0shot_cot",
+        "name": "gpqa_diamond",
+        "split": "train",
+        "limit": 100,
+    },
 }
 
 

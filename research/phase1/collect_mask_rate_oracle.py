@@ -44,7 +44,7 @@ class OracleConfig:
 def parse_args():
     parser = argparse.ArgumentParser(description="Collect one-step masked-token oracle accuracy for phase-1.")
     parser.add_argument("--model-path", required=True)
-    parser.add_argument("--task", choices=["gsm8k", "math500", "humaneval", "mbpp"], required=True)
+    parser.add_argument("--task", choices=["gsm8k", "math500", "aime24", "gpqa_cot", "humaneval", "mbpp"], required=True)
     parser.add_argument("--subset-path", type=Path, required=True)
     parser.add_argument("--output-path", type=Path, required=True)
     parser.add_argument("--gpus", default="0")

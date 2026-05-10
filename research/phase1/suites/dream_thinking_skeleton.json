@@ -1,0 +1,184 @@
+{
+  "output_root": "research/phase1/benchmarks/dream_thinking_skeleton",
+  "runtime": {
+    "batch_size": 1,
+    "block_length": 32,
+    "max_gen_len": 2048,
+    "cache": "prefix",
+    "gpus": "0",
+    "tp_size": 1,
+    "master_port": 24767,
+    "use_compile": false,
+    "use_bd": true,
+    "trace_topk": 8,
+    "enable_trace": true,
+    "record_router": false,
+    "backend_early_stop": true,
+    "maximum_unroll": 4,
+    "expected_tpf": 4
+  },
+  "models": [
+    {
+      "name": "dream_7b",
+      "path": "research/phase1/assets/models/Dream-7B"
+    },
+    {
+      "name": "dream_1_8b_thinking",
+      "path": "research/phase1/assets/models/Dream-1-8B-Thinking"
+    }
+  ],
+  "datasets": [
+    {
+      "name": "gsm8k_200",
+      "task": "gsm8k",
+      "subset_path": "research/phase1/assets/datasets/subsets/gsm8k_200.jsonl"
+    },
+    {
+      "name": "math500_200",
+      "task": "math500",
+      "subset_path": "research/phase1/assets/datasets/subsets/math500_200.jsonl"
+    }
+  ],
+  "methods": [
+    {
+      "name": "confidence_prefix",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95
+      }
+    },
+    {
+      "name": "confidence_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "credit_prefix",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true
+      }
+    },
+    {
+      "name": "credit_prefix_w8",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "frontier_window": 8
+      }
+    },
+    {
+      "name": "credit_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "stdec_prefix",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05
+      }
+    },
+    {
+      "name": "stdec_prefix_w8",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05,
+        "frontier_window": 8
+      }
+    },
+    {
+      "name": "stdec_arbitrary",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05,
+        "selection_mode": "arbitrary"
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "name": "dream7b_gsm8k",
+      "model": "dream_7b",
+      "dataset": "gsm8k_200",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w8",
+        "credit_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ]
+    },
+    {
+      "name": "dream7b_math500",
+      "model": "dream_7b",
+      "dataset": "math500_200",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w8",
+        "credit_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ]
+    },
+    {
+      "name": "dream1_8b_thinking_gsm8k",
+      "model": "dream_1_8b_thinking",
+      "dataset": "gsm8k_200",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w8",
+        "credit_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ]
+    },
+    {
+      "name": "dream1_8b_thinking_math500",
+      "model": "dream_1_8b_thinking",
+      "dataset": "math500_200",
+      "methods": [
+        "confidence_prefix",
+        "confidence_arbitrary",
+        "credit_prefix",
+        "credit_prefix_w8",
+        "credit_arbitrary",
+        "stdec_prefix",
+        "stdec_prefix_w8",
+        "stdec_arbitrary"
+      ]
+    }
+  ]
+}
