@@ -491,6 +491,12 @@ class ThresholdParallelDecoder(ParallelDecoder):
         self._mask_norm = {}
         self._block_offsets = {}
         self._batch_offsets = {}
+        self.trace_recorder = None
+        self.trace_topk = 8
+        self.trace_collect_router = False
+        self._trace_context = None
+        self._trace_elapsed_ms = 0.0
+        self._trace_router_topk = None
 
     def _should_sync_across_ranks(self):
         return not math.isclose(self.temperature, 0.0)
@@ -550,6 +556,7 @@ class ThresholdParallelDecoder(ParallelDecoder):
 
 
         curr_x = x[:, block_start:block_end]
+        trace_x_before = curr_x.clone() if self.trace_recorder is not None else None
    
         x0, high_conf_index, max_probs, max_indices = get_transfer_index_uniform(
             logits,
@@ -584,6 +591,27 @@ class ThresholdParallelDecoder(ParallelDecoder):
         # Otherwise, keep iterating
         else:
             Breakflag = False
+
+        if self.trace_recorder is not None:
+            context = self._trace_context or {}
+            self.trace_recorder.record_uniform_step(
+                logits=logits,
+                x_before=trace_x_before,
+                x_after=curr_x,
+                active_index=active_index,
+                mask_index=mask_index,
+                high_conf_index=high_conf_index,
+                changed_mask=changed_mask,
+                block_start=context.get("block_start", block_start),
+                block_end=context.get("block_end", block_end),
+                block_id=context.get("block_id", -1),
+                block_step=context.get("block_step", -1),
+                global_iter=context.get("global_iter", -1),
+                is_cross_block=context.get("is_cross_block", False),
+                elapsed_ms=self._trace_elapsed_ms,
+                break_flag=Breakflag,
+                router_topk=self._trace_router_topk,
+            )
         
         if Breakflag:
             return Breakflag, prev_embeddings

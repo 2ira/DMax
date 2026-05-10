@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import logging
+import time
 
 from transformers.models.layoutlmv2.modeling_layoutlmv2 import relative_position_bucket
 
@@ -23,6 +24,23 @@ def align_exp2(x: torch.Tensor):
     assert x.ndim == 0 and x.item() >= 0
     shift = 0 if x == 0 else int(torch.floor(torch.log2(x.to(torch.float64)))) + 1
     return 1 << shift
+
+
+def _extract_router_topk(router_logits, batch_size, seq_length, top_k=2, start_offset=0):
+    if router_logits is None:
+        return None
+    per_layer = []
+    for layer_logits in router_logits:
+        if layer_logits is None:
+            return None
+        if layer_logits.ndim == 2:
+            layer_logits = layer_logits.view(batch_size, -1, layer_logits.shape[-1])
+        elif layer_logits.ndim != 3:
+            return None
+        sliced = layer_logits[:, start_offset:start_offset + seq_length]
+        topk_ids = torch.topk(sliced, k=min(top_k, sliced.shape[-1]), dim=-1).indices
+        per_layer.append(topk_ids)
+    return torch.stack(per_layer, dim=0)
 
 class DiffusionLLM:
     """ Diffusion LLM inference
@@ -366,6 +384,15 @@ class BlockDiffusionRunner(BlockRunner):
 
         while step<block_length:
             step+=1
+            if getattr(decoder, "trace_recorder", None) is not None:
+                decoder._trace_context = {
+                    "block_id": int(block_id),
+                    "block_start": int(block_loc.start),
+                    "block_end": int(block_loc.end),
+                    "block_step": int(step),
+                    "global_iter": int(self.diff_iteration.iter_no),
+                    "is_cross_block": bool(self.need_cross_block_update),
+                }
 
             if self.need_cross_block_update:
                 cross_block_loc = BlockLoc(block_loc.start-block_length, block_loc.end)
@@ -579,6 +606,8 @@ class BlockDiffusionIteration:
         replace_position: torch.Tensor 
             The tensor indicates the valid locations in the returned key-values.
         """
+        want_router_logits = bool(getattr(decoder, "trace_collect_router", False))
+        start_time = time.perf_counter()
         if kv_cache is None:
             full_input_ids = x.data[:, :block_loc.end] if embeddings is None else None
             output = model(
@@ -586,6 +615,7 @@ class BlockDiffusionIteration:
                 inputs_embeds=embeddings,
                 attention_mask=attn_mask[:,:block_loc.end,:block_loc.end],
                 position_ids=pos_ids[:, :block_loc.end],
+                output_router_logits=want_router_logits,
             )
 
             logits = output.logits[:, block_loc.start:block_loc.end]
@@ -601,6 +631,7 @@ class BlockDiffusionIteration:
                     past_key_values=past_key_values,
                     attention_mask=attn_mask,
                     replace_position=(0,0) if backend=='sglang' else replace_position,
+                    output_router_logits=want_router_logits,
                 )
             else:
                 output = model(
@@ -610,6 +641,7 @@ class BlockDiffusionIteration:
                     use_cache=True,
                     past_key_values=past_key_values,
                     replace_position=(0,0) if backend=='sglang' else replace_position,
+                    output_router_logits=want_router_logits,
                 )
 
 
@@ -618,6 +650,18 @@ class BlockDiffusionIteration:
             # TODO(dulun): we don't need update kv cache for every step.
             if backend == 'vllm':
                 kv_cache.update(output.past_key_values)
+        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+        decoder._trace_elapsed_ms = elapsed_ms
+        decoder._trace_router_topk = None
+        if want_router_logits and getattr(decoder, "trace_recorder", None) is not None and hasattr(output, "router_logits"):
+            router_seq_start = block_length if is_cross_block else 0
+            decoder._trace_router_topk = _extract_router_topk(
+                output.router_logits,
+                batch_size=logits.shape[0],
+                seq_length=logits.shape[1],
+                top_k=2,
+                start_offset=router_seq_start,
+            )
         if is_cross_block:
             Breakflag, embeddings = decoder.decode_uniform(
                 logits[:, block_length:],
@@ -1247,6 +1291,9 @@ class BlockDiffusionLLM(DiffusionLLM):
         else:
             raise RuntimeError("dynamic_batching_generate is not supported in this configuration.")
 
+    def set_trace_recorder(self, recorder):
+        self.decoder.trace_recorder = recorder
+
     def _get_bd_attn_mask(self, batch_size, attn_mask_num_blocks, block_length):
         key = (batch_size, attn_mask_num_blocks, block_length, *_device_key(self.model.device))
         bd_attn_mask = self._bd_mask_cache.get(key)
@@ -1397,8 +1444,6 @@ class BlockDiffusionLLM(DiffusionLLM):
                 break
         logger.info(f'The number of diffusion iterations: {self.num_forwards}')
         return x.get_generated_tokens()
-
-
 
 
 

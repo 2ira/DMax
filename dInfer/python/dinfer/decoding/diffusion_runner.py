@@ -194,6 +194,7 @@ class ModelRunner:
         replace_position: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
         attention_mask: Optional[torch.Tensor] = None,
+        output_router_logits: Optional[bool] = False,
     ):
         backup_ca_comm = self.tp_group.ca_comm
         if attention_mask is not None and past_key_values is not None:
@@ -214,6 +215,7 @@ class ModelRunner:
             replace_position=replace_position,
             use_cache=use_cache,
             attention_mask=attention_mask,
+            output_router_logits=output_router_logits,
         )
         self.tp_group.ca_comm = backup_ca_comm
 
@@ -276,7 +278,8 @@ class ModelRunner:
         replace_position: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = False,
         attention_mask: Optional[torch.Tensor] = None,
-        embedding_layer=None
+        embedding_layer=None,
+        output_router_logits: Optional[bool] = False,
     ):
         if attention_mask is not None and attention_mask.dtype != torch.bool:
             attention_mask = attention_mask.bool()
@@ -304,6 +307,7 @@ class ModelRunner:
         # Check if graph supports this shape
         can_run_graph = bool(
             self.graph_runner
+            and not output_router_logits
             and self.graph_runner.can_run(active_input, position_ids, past_key_values, is_decode_phase, length, cache_length)
         )
         
@@ -333,7 +337,17 @@ class ModelRunner:
         # 3. NORMAL FORWARD FALLBACK
         # If we fall back to normal forward, forward_normal already has the 
         # `if inputs_embeds is not None: input_ids = None` logic, so it's safe.
-        ret = self.forward_normal(input_ids, position_ids, inputs_embeds, pp_proxy_tensors, past_key_values, replace_position, use_cache, attention_mask)
+        ret = self.forward_normal(
+            input_ids,
+            position_ids,
+            inputs_embeds,
+            pp_proxy_tensors,
+            past_key_values,
+            replace_position,
+            use_cache,
+            attention_mask,
+            output_router_logits=output_router_logits,
+        )
         return ret
     
     def __call__(self, *args, **kwds):

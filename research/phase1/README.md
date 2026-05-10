@@ -32,6 +32,21 @@ Dream/thinking models should be treated as second-phase external comparisons, no
   - prepares frozen subset files for diagnostics
 - `prepare_phase1_subsets.py`
   - creates deterministic dataset subsets for the trace study
+- `collect_traces.py`
+  - runs the DMax/LLaDA decoding path on a frozen subset
+  - records per-step trace JSONL with top-k, margin, entropy, commit/change flags
+- `collect_mask_rate_oracle.py`
+  - measures one-step masked-token accuracy at multiple mask rates
+- `analyze_finalization.py`
+  - computes token-level finalization / commit gap statistics
+- `analyze_step_drift.py`
+  - computes per-step approximate JS drift, margin, and entropy curves
+- `analyze_quadrants.py`
+  - computes confidence vs consistency quadrant statistics
+- `analyze_top1_vs_distribution.py`
+  - compares top-1 stability against top-k distribution stability
+- `analyze_router_stability.py`
+  - computes MoE router top-2 stability across refinement steps
 
 ## Recommended directory layout
 
@@ -81,4 +96,37 @@ DOWNLOAD_MODELS=0 bash research/phase1/download_phase1_assets.sh
 
 ```bash
 PREPARE_SUBSETS=0 bash research/phase1/download_phase1_assets.sh
+```
+
+## Trace collection
+
+Example: collect GSM8K traces on a local LLaDA2.0-mini checkpoint.
+
+```bash
+PYTHONPATH=dInfer/python python3 research/phase1/collect_traces.py \
+  --model-path research/phase1/assets/models/LLaDA2.0-mini \
+  --task gsm8k \
+  --subset-path research/phase1/assets/datasets/subsets/gsm8k_200.jsonl \
+  --output-dir research/phase1/runs/llada2mini_gsm8k \
+  --gpus 0 \
+  --block-length 32 \
+  --threshold 0.3 \
+  --disable-compile
+```
+
+For DMax-Math-16B or DMax-Coder-16B on tensor parallel GPUs, pass `--gpus 0;1` and optionally `--record-router`.
+When `--record-router` is enabled, prefer trace-mode settings such as `--disable-compile`.
+
+## Analysis
+
+Example:
+
+```bash
+python3 research/phase1/analyze_finalization.py \
+  --trace-path research/phase1/runs/llada2mini_gsm8k/traces.jsonl \
+  --output-dir research/phase1/analysis/llada2mini_gsm8k
+
+python3 research/phase1/analyze_step_drift.py \
+  --trace-path research/phase1/runs/llada2mini_gsm8k/traces.jsonl \
+  --output-dir research/phase1/analysis/llada2mini_gsm8k
 ```
