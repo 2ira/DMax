@@ -37,6 +37,17 @@ Dream/thinking models should be treated as second-phase external comparisons, no
   - records per-step trace JSONL with top-k, margin, entropy, commit/change flags
 - `collect_mask_rate_oracle.py`
   - measures one-step masked-token accuracy at multiple mask rates
+- `run_benchmark_suite.py`
+  - runs a controlled multi-method benchmark suite from one JSON spec
+  - enforces shared runtime controls across compared methods
+- `benchmark_spec.py`
+  - dataclasses and loader for suite/model/dataset/method configs
+- `benchmark_core.py`
+  - shared execution engine for controlled benchmark runs
+- `scorers.py`
+  - task-specific score registry reused by the benchmark suite
+- `trace_metrics.py`
+  - computes premature-finalization and self-finalization gap metrics
 - `analyze_finalization.py`
   - computes token-level finalization / commit gap statistics
 - `analyze_step_drift.py`
@@ -144,6 +155,80 @@ For DMax-Math-16B or DMax-Coder-16B on tensor parallel GPUs, pass `--gpus 0;1` a
 When `--record-router` is enabled, prefer trace-mode settings such as `--disable-compile`.
 
 ## Minimal baselines
+
+The older `run_minimal_baselines.py` entrypoint is still useful for quick smoke
+tests, but it does not provide the strict controlled-comparison workflow needed
+for the full benchmark matrix.
+
+## Controlled benchmark suite
+
+Use the suite runner for fair method comparisons under shared controls:
+
+- same model
+- same prompt formatting
+- same generation length cap
+- same block size
+- same backend early-stop setting
+- same KV-cache setting
+- same runtime backend
+
+Important:
+
+- `NFE` is a comparison target, so different methods will generally realize different actual denoising-step counts.
+- What the suite holds fixed is the refinement environment: model, prompt formatting, generation length cap, block size, cache policy, backend early-stop flag, and unroll budget.
+
+Example:
+
+```bash
+PYTHONPATH=dInfer/python python3 research/phase1/run_benchmark_suite.py \
+  --suite research/phase1/suites/phase1_controlled_example.json
+```
+
+Dry run:
+
+```bash
+PYTHONPATH=dInfer/python python3 research/phase1/run_benchmark_suite.py \
+  --suite research/phase1/suites/phase1_controlled_example.json \
+  --dry-run
+```
+
+The suite runner writes:
+
+- per-method `outputs.jsonl`
+- per-method `summary.json`
+- per-method `score_details.json`
+- per-method `trace_metrics.json`
+- top-level `suite_results.csv`
+- top-level `suite_manifest.json`
+
+The example suite already covers these method families:
+
+- single-step static scores: `confidence`, `margin`, `negative_entropy`
+- random-order sanity check: `random_arbitrary`
+- simple temporal rule: `stable_top1_r3`
+- time + static: `margin_plus_stable`, `entropy_plus_stable`
+- logits modification: `credit`
+- threshold modification: `stdec`
+- early stop: `jot`, `prophet_like`
+- combinations: `credit_plus_margin`, `credit_plus_entropy`, `credit_plus_stdec`
+- prefix variants:
+  - `confidence` uses DMax-style longest-prefix selection
+  - `confidence_arbitrary` removes the prefix constraint
+  - `credit_prefix_w8` keeps credit local to the current prefix frontier
+  - `stable_top1_r3_prefix_w8` keeps stable-top1 finalization local to the current prefix frontier
+
+Selection controls are explicit method parameters now:
+
+- `selection_mode = "prefix"` or `"arbitrary"`
+- `frontier_window = w` to restrict finalization to positions near the current committed frontier
+
+This matters for reasoning and code tasks because the base DMax-style uniform decoder is already longest-prefix by default.
+
+Notes:
+
+- `stdec`, `jot`, and `prophet_like` are controlled research approximations, not official reproductions.
+- `Score / TPF / TPS / NFE / premature-finalization rate` are emitted automatically.
+- For code tasks, scoring uses the repository's existing HumanEval / MBPP code-eval utilities.
 
 Run one baseline on a frozen subset:
 

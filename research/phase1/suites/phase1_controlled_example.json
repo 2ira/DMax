@@ -1,0 +1,284 @@
+{
+  "output_root": "research/phase1/benchmarks",
+  "runtime": {
+    "batch_size": 1,
+    "block_length": 32,
+    "max_gen_len": 2048,
+    "cache": "prefix",
+    "gpus": "0",
+    "tp_size": 1,
+    "master_port": 24667,
+    "use_compile": false,
+    "use_bd": true,
+    "trace_topk": 8,
+    "enable_trace": true,
+    "record_router": false,
+    "backend_early_stop": true,
+    "maximum_unroll": 4,
+    "expected_tpf": 4
+  },
+  "models": [
+    {
+      "name": "llada2_mini",
+      "path": "research/phase1/assets/models/LLaDA2.0-mini"
+    },
+    {
+      "name": "dmax_math_16b",
+      "path": "research/phase1/assets/models/DMax-Math-16B"
+    },
+    {
+      "name": "dmax_coder_16b",
+      "path": "research/phase1/assets/models/DMax-Coder-16B"
+    }
+  ],
+  "datasets": [
+    {
+      "name": "gsm8k_200",
+      "task": "gsm8k",
+      "subset_path": "research/phase1/assets/datasets/subsets/gsm8k_200.jsonl"
+    },
+    {
+      "name": "math500_200",
+      "task": "math500",
+      "subset_path": "research/phase1/assets/datasets/subsets/math500_200.jsonl"
+    },
+    {
+      "name": "humaneval_164",
+      "task": "humaneval",
+      "subset_path": "research/phase1/assets/datasets/subsets/humaneval_164.jsonl"
+    },
+    {
+      "name": "mbpp_200",
+      "task": "mbpp",
+      "subset_path": "research/phase1/assets/datasets/subsets/mbpp_sanitized_200.jsonl"
+    }
+  ],
+  "methods": [
+    {
+      "name": "confidence",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95
+      }
+    },
+    {
+      "name": "confidence_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "margin",
+      "family": "rule",
+      "params": {
+        "score_mode": "margin",
+        "threshold": 0.50
+      }
+    },
+    {
+      "name": "negative_entropy",
+      "family": "rule",
+      "params": {
+        "score_mode": "negative_entropy",
+        "threshold": 0.50
+      }
+    },
+    {
+      "name": "random_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "random_uniform",
+        "threshold": 0.50,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "stable_top1_r3",
+      "family": "rule",
+      "params": {
+        "score_mode": "none",
+        "threshold": 0.0,
+        "stability_only": true,
+        "stability_steps": 3
+      }
+    },
+    {
+      "name": "stable_top1_r3_prefix_w8",
+      "family": "rule",
+      "params": {
+        "score_mode": "none",
+        "threshold": 0.0,
+        "stability_only": true,
+        "stability_steps": 3,
+        "frontier_window": 8
+      }
+    },
+    {
+      "name": "margin_plus_stable",
+      "family": "rule",
+      "params": {
+        "score_mode": "margin",
+        "threshold": 0.50,
+        "require_stability": true,
+        "stability_steps": 3
+      }
+    },
+    {
+      "name": "entropy_plus_stable",
+      "family": "rule",
+      "params": {
+        "score_mode": "negative_entropy",
+        "threshold": 0.50,
+        "require_stability": true,
+        "stability_steps": 3
+      }
+    },
+    {
+      "name": "credit",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true
+      }
+    },
+    {
+      "name": "credit_prefix_w8",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "frontier_window": 8
+      }
+    },
+    {
+      "name": "credit_arbitrary",
+      "family": "rule",
+      "params": {
+        "score_mode": "confidence",
+        "threshold": 0.95,
+        "credit_enabled": true,
+        "selection_mode": "arbitrary"
+      }
+    },
+    {
+      "name": "stdec",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05
+      }
+    },
+    {
+      "name": "jot",
+      "family": "jot",
+      "params": {
+        "threshold": 0.90,
+        "stability_steps": 3,
+        "stability_prob": 0.90
+      }
+    },
+    {
+      "name": "prophet_like",
+      "family": "prophet",
+      "params": {
+        "threshold": 0.50,
+        "prophet_patience": 3,
+        "prophet_score_threshold": 0.90
+      }
+    },
+    {
+      "name": "credit_plus_margin",
+      "family": "rule",
+      "params": {
+        "score_mode": "margin",
+        "threshold": 0.50,
+        "credit_enabled": true
+      }
+    },
+    {
+      "name": "credit_plus_entropy",
+      "family": "rule",
+      "params": {
+        "score_mode": "negative_entropy",
+        "threshold": 0.50,
+        "credit_enabled": true
+      }
+    },
+    {
+      "name": "credit_plus_stdec",
+      "family": "stdec",
+      "params": {
+        "threshold": 0.50,
+        "consistency_steps": 3,
+        "temporal_bonus": 0.08,
+        "spatial_bonus": 0.05,
+        "credit_enabled": true
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "name": "llada2mini_gsm8k",
+      "model": "llada2_mini",
+      "dataset": "gsm8k_200",
+      "methods": [
+        "confidence",
+        "confidence_arbitrary",
+        "margin",
+        "negative_entropy",
+        "random_arbitrary",
+        "stable_top1_r3",
+        "stable_top1_r3_prefix_w8",
+        "margin_plus_stable",
+        "entropy_plus_stable",
+        "credit",
+        "credit_prefix_w8",
+        "credit_arbitrary",
+        "stdec",
+        "jot",
+        "prophet_like",
+        "credit_plus_margin",
+        "credit_plus_entropy",
+        "credit_plus_stdec"
+      ]
+    },
+    {
+      "name": "dmax_math_gsm8k",
+      "model": "dmax_math_16b",
+      "dataset": "gsm8k_200",
+      "methods": [
+        "confidence",
+        "confidence_arbitrary",
+        "margin",
+        "negative_entropy",
+        "random_arbitrary",
+        "stable_top1_r3",
+        "stable_top1_r3_prefix_w8",
+        "margin_plus_stable",
+        "entropy_plus_stable",
+        "credit",
+        "credit_prefix_w8",
+        "credit_arbitrary",
+        "stdec",
+        "jot",
+        "prophet_like",
+        "credit_plus_margin",
+        "credit_plus_entropy",
+        "credit_plus_stdec"
+      ],
+      "runtime_overrides": {
+        "record_router": true,
+        "gpus": "0;1",
+        "tp_size": 2
+      }
+    }
+  ]
+}
