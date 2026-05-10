@@ -846,6 +846,28 @@ class CreditThresholdParallelDecoder(ThresholdParallelDecoder):
             self._credit_iters.clear()
         broadcast_if_needed(x.data)
 
+    def decode_uniform(self, logits, block_start, block_end, x, active_index, embedding_layer, prev_embeddings=None, iter_threshold=None, top_k=1):
+        if iter_threshold is None:
+            iter_threshold = self.threshold
+        mask_index = (x[:, block_start:block_end] == self.mask_id)
+        key = (block_start, block_end, "uniform")
+        used_logits = self._apply_credit_fusion(logits, mask_index, key)
+        break_flag, embeddings = super().decode_uniform(
+            used_logits,
+            block_start,
+            block_end,
+            x,
+            active_index,
+            embedding_layer,
+            prev_embeddings=prev_embeddings,
+            iter_threshold=iter_threshold,
+            top_k=top_k,
+        )
+        if not (x.data == self.mask_id).any():
+            self._credit_mats.clear()
+            self._credit_iters.clear()
+        return break_flag, embeddings
+
 
 class FixedParallelDecoder(ParallelDecoder):
     """ This decoder decodes tokens in a fixed number of steps."""

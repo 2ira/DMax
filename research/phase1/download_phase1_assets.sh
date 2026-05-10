@@ -9,6 +9,8 @@ DATA_ROOT="${DATA_ROOT:-${ASSET_ROOT}/datasets}"
 DOWNLOAD_MODELS="${DOWNLOAD_MODELS:-1}"
 PREPARE_SUBSETS="${PREPARE_SUBSETS:-1}"
 DOWNLOAD_DREAM_REFERENCES="${DOWNLOAD_DREAM_REFERENCES:-0}"
+MODEL_DOWNLOAD_MAX_WORKERS="${MODEL_DOWNLOAD_MAX_WORKERS:-8}"
+MODEL_REPOS="${MODEL_REPOS:-inclusionAI/LLaDA2.0-mini Zigeng/DMax-Math-16B Zigeng/DMax-Coder-16B}"
 
 echo "[phase1] repo root: ${ROOT_DIR}"
 echo "[phase1] asset root: ${ASSET_ROOT}"
@@ -18,15 +20,20 @@ mkdir -p "${MODEL_ROOT}" "${DATA_ROOT}"
 download_model() {
   local repo_id="$1"
   echo "[phase1] downloading model: ${repo_id}"
+  export HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER:-1}"
+  export HF_XET_HIGH_PERFORMANCE="${HF_XET_HIGH_PERFORMANCE:-1}"
+  export HF_HUB_DOWNLOAD_TIMEOUT="${HF_HUB_DOWNLOAD_TIMEOUT:-1800}"
+  export HF_HUB_ETAG_TIMEOUT="${HF_HUB_ETAG_TIMEOUT:-1800}"
   python "${ROOT_DIR}/dInfer/evaluations/download_hf_model.py" \
     --repo_id "${repo_id}" \
-    --local_dir "${MODEL_ROOT}"
+    --local_dir "${MODEL_ROOT}" \
+    --max_workers "${MODEL_DOWNLOAD_MAX_WORKERS}"
 }
 
 if [[ "${DOWNLOAD_MODELS}" == "1" ]]; then
-  download_model "inclusionAI/LLaDA2.0-mini"
-  download_model "Zigeng/DMax-Math-16B"
-  download_model "Zigeng/DMax-Coder-16B"
+  for repo_id in ${MODEL_REPOS}; do
+    download_model "${repo_id}"
+  done
 
   if [[ "${DOWNLOAD_DREAM_REFERENCES}" == "1" ]]; then
     echo "[phase1] Dream models are optional second-phase references."
