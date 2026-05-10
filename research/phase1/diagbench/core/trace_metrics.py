@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from analysis_utils import active_position_records, load_traces, self_final_step
+from ..analysis.analysis_utils import active_position_records, load_traces, self_final_step
 
 
 def compute_premature_finalization_metrics(trace_path: str | Path) -> dict[str, Any]:

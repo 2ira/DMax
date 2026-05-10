@@ -3,7 +3,7 @@ import csv
 import json
 from pathlib import Path
 
-from analysis_utils import active_position_records, first_true_step, load_traces, online_stability_step, self_final_step
+from .analysis_utils import active_position_records, first_true_step, load_traces, online_stability_step, self_final_step
 
 
 def parse_args():

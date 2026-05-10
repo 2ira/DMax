@@ -1,24 +1,13 @@
 import argparse
 import csv
 import json
-import os
-import sys
 from pathlib import Path
 
 from transformers import AutoTokenizer
 
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-os.environ.setdefault("MPLCONFIGDIR", str(REPO_ROOT / "research" / "phase1" / ".mplconfig"))
-os.environ.setdefault("XDG_CACHE_HOME", str(REPO_ROOT / "research" / "phase1" / ".cache"))
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-if str(REPO_ROOT / "research" / "phase1") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "research" / "phase1"))
-
-from benchmark_core import MethodRunConfig, launch_method_run  # noqa: E402
-from benchmark_spec import RuntimeControls, load_suite  # noqa: E402
-from data_formats import load_jsonl, prepare_samples  # noqa: E402
+from ..core.benchmark_core import MethodRunConfig, launch_method_run
+from ..core.benchmark_spec import RuntimeControls, load_suite
+from ..tasks.data_formats import load_jsonl, prepare_samples
 
 
 def parse_args():

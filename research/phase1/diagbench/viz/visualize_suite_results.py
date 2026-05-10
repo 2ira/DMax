@@ -7,10 +7,10 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
+from .. import PHASE1_ROOT
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-os.environ.setdefault("MPLCONFIGDIR", str(REPO_ROOT / "research" / "phase1" / ".mplconfig"))
-os.environ.setdefault("XDG_CACHE_HOME", str(REPO_ROOT / "research" / "phase1" / ".cache"))
+os.environ.setdefault("MPLCONFIGDIR", str(PHASE1_ROOT / ".mplconfig"))
+os.environ.setdefault("XDG_CACHE_HOME", str(PHASE1_ROOT / ".cache"))
 
 
 def parse_args():

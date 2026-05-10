@@ -45,7 +45,8 @@ fi
 
 if [[ "${PREPARE_SUBSETS}" == "1" ]]; then
   echo "[phase1] preparing deterministic dataset subsets"
-  python "${ROOT_DIR}/research/phase1/prepare_phase1_subsets.py" \
+  PYTHONPATH="${ROOT_DIR}/research/phase1:${ROOT_DIR}/dInfer/python:${PYTHONPATH:-}" \
+  python -m diagbench.cli.prepare_phase1_subsets \
     --output-root "${DATA_ROOT}" \
     --seed 42
 else

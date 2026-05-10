@@ -2,7 +2,6 @@ import json
 import math
 import os
 import statistics
-import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -11,22 +10,11 @@ import torch
 import torch.multiprocessing as mp
 from transformers import AutoConfig, AutoTokenizer
 
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-PYTHON_ROOT = REPO_ROOT / "dInfer" / "python"
-os.environ.setdefault("MPLCONFIGDIR", str(REPO_ROOT / "research" / "phase1" / ".mplconfig"))
-os.environ.setdefault("XDG_CACHE_HOME", str(REPO_ROOT / "research" / "phase1" / ".cache"))
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-if str(PYTHON_ROOT) not in sys.path:
-    sys.path.insert(0, str(PYTHON_ROOT))
-if str(REPO_ROOT / "research" / "phase1") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "research" / "phase1"))
-
-from benchmark_spec import RuntimeControls  # noqa: E402
-from minimal_decoders import build_decoder_from_method  # noqa: E402
-from scorers import score_outputs  # noqa: E402
-from trace_metrics import write_trace_metrics  # noqa: E402
+from .. import REPO_ROOT
+from .benchmark_spec import RuntimeControls
+from ..methods.minimal_decoders import build_decoder_from_method
+from ..tasks.scorers import score_outputs
+from .trace_metrics import write_trace_metrics
 
 
 @dataclass

@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from data_formats import format_gpqa_cot_row, load_jsonl
+from .data_formats import format_gpqa_cot_row, load_jsonl
 
 
 def _load_outputs(path: str | Path) -> list[dict[str, Any]]:
@@ -147,17 +147,33 @@ def _normalize_text(text: str) -> str:
     return " ".join(str(text or "").strip().lower().split())
 
 
+def _extract_prompt_choices(prompt: str) -> dict[str, str]:
+    choice_map: dict[str, str] = {}
+    for line in str(prompt or "").splitlines():
+        match = re.match(r"^\s*([ABCD])[\.\):]\s*(.+?)\s*$", line.strip(), flags=re.IGNORECASE)
+        if match:
+            choice_map[match.group(1).upper()] = _normalize_text(match.group(2))
+    return choice_map
+
+
 def _score_gpqa_cot(rows: list[dict[str, Any]], outputs: list[dict[str, Any]]) -> dict[str, Any]:
     total = min(len(rows), len(outputs))
     correct = 0
     details = []
 
     for idx in range(total):
-        _, target_text, meta = format_gpqa_cot_row(rows[idx])
+        prompt_text, target_text, meta = format_gpqa_cot_row(rows[idx])
         prediction = outputs[idx].get("generated_text", "")
         pred_letter = _extract_choice_letter(prediction)
         gold_letter = _extract_choice_letter(target_text) or _extract_choice_letter(meta.get("correct_letter", ""))
         gold_text = _normalize_text(meta.get("expected_answer", target_text))
+
+        if not gold_letter and gold_text:
+            choice_map = _extract_prompt_choices(prompt_text)
+            for candidate_letter, candidate_text in choice_map.items():
+                if candidate_text == gold_text:
+                    gold_letter = candidate_letter
+                    break
 
         if gold_letter:
             is_correct = pred_letter == gold_letter

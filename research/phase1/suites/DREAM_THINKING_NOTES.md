@@ -18,23 +18,33 @@ Assumptions:
 
 What is not wired in yet:
 
-- AIME-style long-CoT subsets
-- GPQA CoT subsets
-- Task adapters specialized for long-form reasoning traces
 - Length-bucketed reporting (`short / medium / long CoT`)
 
 Recommended next extensions:
 
-1. Add deterministic subsets:
-   - `aime24_100.jsonl`
-   - `gpqa_cot_100.jsonl`
-2. Extend `research/phase1/data_formats.py` with:
-   - `aime24`
-   - `gpqa_cot`
-3. Add a second Dream suite that groups outputs by generated trace length:
+1. Add a second Dream suite that groups outputs by generated trace length:
    - `<256`
    - `256-768`
    - `>768`
+2. Validate the exact HF schemas we use for:
+   - `HuggingFaceH4/aime_2024`
+   - `llamastack/gpqa_0shot_cot`
+3. Stress-test long-CoT prompts on:
+   - `aime24_30`
+   - `gpqa_cot_100`
+   using:
+   - [dream_thinking_longcot_skeleton.json](/Users/ira/Document/DMax/research/phase1/suites/dream_thinking_longcot_skeleton.json)
+
+What is wired in now:
+
+- deterministic subsets:
+  - `aime24_30.jsonl`
+  - `gpqa_cot_100.jsonl`
+- task adapters:
+  - `aime24`
+  - `gpqa_cot`
+- a long-CoT comparison suite skeleton:
+  - [dream_thinking_longcot_skeleton.json](/Users/ira/Document/DMax/research/phase1/suites/dream_thinking_longcot_skeleton.json)
 
 Why keep this separate from the main DMax suite:
 

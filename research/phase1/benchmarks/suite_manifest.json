@@ -91,6 +91,14 @@
         "threshold": 0.5
       }
     },
+    "random_arbitrary": {
+      "family": "rule",
+      "params": {
+        "score_mode": "random_uniform",
+        "threshold": 0.5,
+        "selection_mode": "arbitrary"
+      }
+    },
     "stable_top1_r3": {
       "family": "rule",
       "params": {
@@ -216,6 +224,7 @@
         "confidence_arbitrary",
         "margin",
         "negative_entropy",
+        "random_arbitrary",
         "stable_top1_r3",
         "stable_top1_r3_prefix_w8",
         "margin_plus_stable",
@@ -241,6 +250,7 @@
         "confidence_arbitrary",
         "margin",
         "negative_entropy",
+        "random_arbitrary",
         "stable_top1_r3",
         "stable_top1_r3_prefix_w8",
         "margin_plus_stable",

@@ -4,7 +4,6 @@ import json
 import math
 import os
 import random
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,17 +11,7 @@ import torch
 import torch.multiprocessing as mp
 from transformers import AutoConfig, AutoTokenizer
 
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-PYTHON_ROOT = REPO_ROOT / "dInfer" / "python"
-os.environ.setdefault("MPLCONFIGDIR", str(REPO_ROOT / "research" / "phase1" / ".mplconfig"))
-os.environ.setdefault("XDG_CACHE_HOME", str(REPO_ROOT / "research" / "phase1" / ".cache"))
-if str(PYTHON_ROOT) not in sys.path:
-    sys.path.insert(0, str(PYTHON_ROOT))
-if str(REPO_ROOT / "research" / "phase1") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "research" / "phase1"))
-
-from data_formats import load_jsonl, prepare_samples  # noqa: E402
+from ..tasks.data_formats import load_jsonl, prepare_samples
 
 
 @dataclass

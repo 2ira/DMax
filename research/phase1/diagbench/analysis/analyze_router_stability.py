@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from analysis_utils import active_position_records, load_traces
+from .analysis_utils import active_position_records, load_traces
 
 
 def parse_args():
