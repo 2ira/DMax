@@ -89,6 +89,87 @@ And for visualizations:
 - `python -m diagbench.viz.visualize_early_stop_dynamics`
 - `python -m diagbench.viz.visualize_suite_results`
 
+## Current capabilities
+
+This package currently supports three layers of work:
+
+1. Data preparation
+   - deterministic subset building for:
+     - `gsm8k`
+     - `math500`
+     - `aime24`
+     - `gpqa_cot`
+     - `humaneval`
+     - `mbpp`
+2. Controlled decoder comparison
+   - unified benchmark suites with shared runtime controls
+   - shared scoring outputs:
+     - `Score`
+     - `TPF`
+     - `TPS`
+     - `NFE`
+     - `premature_finalization_rate`
+3. Trace-driven analysis
+   - per-step trace collection
+   - finalization-gap analysis
+   - step-drift analysis
+   - confidence/consistency quadrant analysis
+   - top-1 vs distribution stability analysis
+   - optional MoE router stability analysis
+
+## Supported model status
+
+### Primary supported path
+
+These are the main models the runtime is designed around:
+
+- `LLaDA2.0-mini`
+- `DMax-Math-16B`
+- `DMax-Coder-16B`
+
+### Experimental suite support
+
+These models are already wired into suite skeletons, but should be treated as compatibility targets rather than guaranteed stable paths:
+
+- `Dream-7B`
+- `Dream-1-8B-Thinking`
+
+The reason is simple: the current benchmark runtime still uses the DMax / LLaDA execution stack under the hood.
+
+## Supported decoder families
+
+Current method families include:
+
+- single-step static scores
+  - `confidence`
+  - `margin`
+  - `negative_entropy`
+- temporal heuristics
+  - `stable_top1`
+- time + static combinations
+  - `margin_plus_stable`
+  - `entropy_plus_stable`
+- logits modification
+  - `credit`
+- threshold modification
+  - `stdec`
+- early stop approximations
+  - `jot`
+  - `prophet_like`
+- combinations
+  - `credit_plus_margin`
+  - `credit_plus_entropy`
+  - `credit_plus_stdec`
+- ordering / locality controls
+  - `selection_mode = prefix`
+  - `selection_mode = arbitrary`
+  - `frontier_window = w`
+
+Important:
+
+- `STDec / Jot / Prophet` here are research approximations for controlled comparison.
+- They should not be described as official reproductions unless separately validated.
+
 ## Assets
 
 The download script still lives at:
@@ -150,6 +231,16 @@ This suite framework is designed to keep comparisons controlled:
 - same unroll budget
 
 `NFE` is not fixed, because it is one of the comparison targets. What is fixed is the refinement environment.
+
+## Runtime assumptions
+
+The suite expects:
+
+- a local Hugging Face-style checkpoint directory
+- `config.json` present in the model root
+- tokenizer files present in the same directory, or an explicit `tokenizer_path`
+
+The runner now checks this early and fails with a local-path error instead of falling back to a Hugging Face repo-id parse error.
 
 ## Prefix-controlled matrix
 
@@ -213,6 +304,33 @@ Current task adapters include:
 - `humaneval`
 - `mbpp`
 
+Current per-step trace fields include:
+
+- block / iteration metadata
+- active positions
+- masked flags
+- committed flags
+- changed flags
+- previous and current discrete state tokens
+- `topk_ids`
+- `topk_probs`
+- `margin`
+- `entropy`
+- optional `router_topk`
+- decoder-side extras such as:
+  - `score`
+  - `adjusted_score`
+  - `streak`
+  - `eligible`
+  - `frozen`
+  - `within_frontier_window`
+
+Interpretation note:
+
+- `topk_ids / topk_probs` describe the model output distribution at the current refinement step.
+- They do **not** represent a separate "soft-label target".
+- Under `credit` methods they reflect the credit-modified logits, not raw model logits.
+
 ## Mask-rate oracle
 
 Example:
@@ -272,6 +390,52 @@ python -m diagbench.viz.visualize_suite_results \
   --suite-results research/phase1/benchmarks/suite_results.csv \
   --output-dir research/phase1/figures/suite
 ```
+
+## Common failure modes
+
+### 1. Model path looks valid in the suite, but `transformers` says it is an invalid repo id
+
+This almost always means the local checkpoint directory does not really exist or is incomplete.
+
+Check:
+
+```bash
+ls -lah research/phase1/assets/models
+ls -lah research/phase1/assets/models/DMax-Math-16B
+```
+
+At minimum, the directory should contain:
+
+- `config.json`
+- tokenizer files
+- model weight shards
+
+### 2. `save_gemlite_cache` import error from `sglang`
+
+The code now treats this as an optional optimization and falls back to a no-op if your `sglang` version does not provide it.
+
+If you still see this error, you are likely running an older checkout that does not include the compatibility patch.
+
+### 3. NVIDIA driver / CUDA mismatch
+
+If you see warnings like:
+
+```text
+The NVIDIA driver on your system is too old
+```
+
+then the issue is environment-level, not suite-level.
+
+You need one of:
+
+- a newer NVIDIA driver
+- or a PyTorch build compatible with your current driver
+
+### 4. `Dream` suites fail while `DMax` suites run
+
+That usually means the checkpoint is not fully compatible with the current DMax / LLaDA runtime stack.
+
+Treat Dream support as experimental unless you have verified the exact checkpoint/runtime combination.
 
 ## Design rule
 

@@ -86,6 +86,18 @@ def main():
         runtime = _merge_runtime(suite.runtime, experiment.runtime_overrides)
         prepared_samples = None
 
+        model_path = Path(model_spec.path)
+        if not model_path.exists():
+            raise FileNotFoundError(
+                f"Model path does not exist: {model_path}\n"
+                "Expected a local Hugging Face checkpoint directory with config/tokenizer/model files."
+            )
+        if not (model_path / "config.json").exists():
+            raise FileNotFoundError(
+                f"Model directory is missing config.json: {model_path}\n"
+                "This usually means the model download is incomplete or the suite path points to the wrong directory."
+            )
+
         for method_name in experiment.methods:
             if selected_methods and method_name not in selected_methods:
                 continue
